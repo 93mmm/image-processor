@@ -17,4 +17,4 @@ mv main ..
 ./main
 ```
 
-stb_image and stb_image_write the files are taken from the repository
+stb_image and stb_image_write the files are taken from the repository https://github.com/nothings/stb
