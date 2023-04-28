@@ -10,6 +10,7 @@ mkdir build && cd build
 cmake .. 
 make
 mv main ..
+cd ..
 ```
 
 #### How to run?
