@@ -23,14 +23,12 @@ Image::~Image() {
     stbi_image_free(image);
 }
 
-string Image::save_image() {
-    string new_filename = generate_new_filename();
+void Image::save_image(string save_as) {
     if (extension == ".png")
-        stbi_write_png(new_filename.c_str(), width, height, channels, image, width * channels);
+        stbi_write_png(save_as.c_str(), width, height, channels, image, width * channels);
     else if (extension == ".jpg" or extension == ".jpeg") {
-        stbi_write_jpg(new_filename.c_str(), width, height, channels, image, width * channels);
+        stbi_write_jpg(save_as.c_str(), width, height, channels, image, width * channels);
     }
-    return new_filename;
 }
 
 void Image::stripe_image(unsigned int stripes) {
@@ -70,34 +68,10 @@ void Image::vintage_image() {
 }
 
 void Image::pixelize_image(int pixel_size) {
-    for (int y = 0; y < width; y += pixel_size)
-        for (int x = 0; x < height; x += pixel_size)
+    for (int y = 0; y < width - pixel_size; y += pixel_size)
+        for (int x = 0; x < height - pixel_size; x += pixel_size) {
             set_pixel(x, y, pixel_size);
-}
-
-string Image::generate_new_filename() {
-    string new_filename;
-    int incr = 0;
-    do {
-        incr++;
-        new_filename = dir + filename + std::to_string(incr) + extension;
-    } while (std::filesystem::exists(new_filename));
-    return new_filename;
-}
-
-string Image::generate_new_filename(string dir) {
-    string letters = "zxcvbnmasdfghjklqwertyuiop1234567890";
-    
-    do {
-        string random_string = "";
-        std::srand(std::time(nullptr));
-        int range = 7 + std::rand() % 11;
-        for (int i = 0; i < range; i++)
-            random_string += letters[std::rand() % 37];
-        filename = dir + random_string + extension;
-    } while (std::filesystem::exists(filename));
-
-    return filename;
+        }
 }
 
 void Image::set_pixel(int x_pos, int y_pos, int pixel_size) {
@@ -105,7 +79,6 @@ void Image::set_pixel(int x_pos, int y_pos, int pixel_size) {
     unsigned char *pixelOffset;
     int pixel_square = pixel_size * pixel_size;
     int range_x = x_pos + pixel_size, range_y = y_pos + pixel_size;
-
     for (int x = x_pos; x < range_x; x++)
         for (int y = y_pos; y < range_y; y++) {
             pixelOffset = image + (y + width * x) * channels;

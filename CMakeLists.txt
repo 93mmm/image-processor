@@ -20,6 +20,8 @@ add_executable(image-processor-tg-bot
     src/main.cpp
     src/image_processor.h
     src/image_processor.cpp
+    src/bot.h
+    src/bot.cpp
 )
 
 target_link_libraries(image-processor-tg-bot /usr/local/lib/libTgBot.a ${CMAKE_THREAD_LIBS_INIT} ${OPENSSL_LIBRARIES} ${Boost_LIBRARIES} ${CURL_LIBRARIES})

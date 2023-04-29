@@ -12,15 +12,13 @@ public:
     Image(std::string fn);
     ~Image();
 
-    std::string save_image();
+    void save_image(std::string save_as);
 
     void stripe_image(unsigned int stripes);
     void vintage_image();
     void pixelize_image(int pixel_size);
     
 private:
-    std::string generate_new_filename();
-    std::string generate_new_filename(std::string dir);
     void set_pixel(int x_pos, int y_pos, int pixel_size);
     
     std::string dir,
