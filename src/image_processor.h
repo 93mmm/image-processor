@@ -6,7 +6,6 @@
 #define HORIZONTAL_STRIPES 1
 #define VERTICAL_STRIPES 2
 
-
 class Image {
 public:
     Image(std::string fn);

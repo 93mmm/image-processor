@@ -5,8 +5,12 @@
 #include <tgbot/tgbot.h>
 
 namespace tgbot {
-    TgBot::Bot init_bot(std::string token);
-    void init_events(TgBot::Bot &bot);
-    int start_polling(TgBot::Bot &bot);
-    void get_convert_and_send_photo(TgBot::Bot &bot, TgBot::Message::Ptr message);
+    void start_bot(std::string token);
+    void start_longpoll(TgBot::Bot &bot);
+    TgBot::InlineKeyboardMarkup::Ptr get_main_keyboard();
+    TgBot::InlineKeyboardMarkup::Ptr get_si_keyboard();
+    std::string get_unique_filename_in_dir(std::string directory, std::string extension);
+
+    std::string process_photo(std::string todo, std::string fn);
+    void download_file(TgBot::Bot &bot, TgBot::Message::Ptr message, std::unordered_map<int, std::string> &mp);
 }
