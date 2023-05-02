@@ -1,11 +1,16 @@
 #include "bot.h"
-#include <filesystem>
+#include <fstream>
 
-using std::string, std::cout, std::vector;
+using std::string, std::cout;
 
 int main(int argc, char **argv)
 {
-    string token = "5946455553:AAFsKjYVA7VgSkC5cbNelHeABLZRZn5ff_A";
+    std::ifstream file("token.txt");
+    string token;
+    if (!file.is_open())
+        return EXIT_FAILURE;
+    getline(file, token);
+    file.close();
     tgbot::start_bot(token);
     return 0;
 }

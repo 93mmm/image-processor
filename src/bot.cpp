@@ -3,15 +3,16 @@
 
 #include <exception>
 #include <fstream>
-#include <unordered_map>
 
 #define STRIPE_IMAGE_SIGNAL "si"
 #define PIXELIZE_IMAGE_SIGNAL "pi"
 #define VINTAGE_IMAGE_SIGNAL "vi"
+
 #define VERTICAL_LINE_SIGNAL "ver_line"
 #define HORIZONTAL_LINE_SIGNAL "hor_line"
 
 #define DIR_FOR_RECIEVED_FILES "docs"
+#define DIR_FOR_TEMPORARY_FILES "tmp"
 
 using std::string, std::ofstream, std::vector, std::unordered_map, std::cout;
 using namespace TgBot;
@@ -19,67 +20,84 @@ using namespace TgBot;
 void tgbot::start_bot(string token) {
     Bot bot(token);
 
-    unordered_map<int, string> waiting_for_reply;
-
-    InlineKeyboardMarkup::Ptr main_keyboard = get_main_keyboard();
-    InlineKeyboardMarkup::Ptr si_keyboard = get_si_keyboard();
+    Args args{bot};
+    args.main_keyboard = get_main_keyboard();
+    args.si_keyboard = get_si_keyboard();
     
-    bot.getEvents().onCallbackQuery([&bot, &si_keyboard, &waiting_for_reply](CallbackQuery::Ptr query) {
-        if (StringTools::startsWith(query->data, STRIPE_IMAGE_SIGNAL)) {
-            string response = "stripe image";
-            bot.getApi().sendMessage(query->message->chat->id, response, false, 0, si_keyboard);
-            return;
-        }
-        bool convert_image = (StringTools::startsWith(query->data, PIXELIZE_IMAGE_SIGNAL) || StringTools::startsWith(query->data, VINTAGE_IMAGE_SIGNAL) || StringTools::startsWith(query->data, VERTICAL_LINE_SIGNAL) || StringTools::startsWith(query->data, HORIZONTAL_LINE_SIGNAL));
-        if (convert_image) {
-            string fn = waiting_for_reply[query->message->chat->id];
-            if (fn == "") {
-                bot.getApi().sendMessage(query->message->chat->id, "an error occurred");
-                return;
-            }
-            string tmp_fn = process_photo(query->data, fn);
-            bot.getApi().sendMessage(query->message->chat->id, "here is your image:");
-            bot.getApi().sendDocument(query->message->chat->id, InputFile::fromFile(tmp_fn, ""));
-            waiting_for_reply.erase(query->message->chat->id);
-            return;
-        }
-    });
-
-    bot.getEvents().onCommand("start", [&bot](Message::Ptr message) {
-        bot.getApi().sendMessage(message->chat->id, "Hello! This bot can process your image!");
-        bot.getApi().sendMessage(message->chat->id, "Send image as file to me and follow instructions to convert your image");
-    });
-
-    bot.getEvents().onCommand("what", [&bot](Message::Ptr message) {
-        bot.getApi().sendMessage(message->chat->id, "Send image as file to me and follow instructions to convert your image");
-    });
-
-    bot.getEvents().onAnyMessage([&bot, &main_keyboard, &waiting_for_reply](Message::Ptr message) {
-        if (StringTools::startsWith(message->text, "/start"))
-            return;
-        else if (StringTools::startsWith(message->text, "/what"))
-            return;
-        else if (message->document != nullptr) {
-            bot.getApi().sendMessage(message->chat->id, "What I will do?", false, 0, main_keyboard);
-            download_file(bot, message, waiting_for_reply);
-        }
-        else
-            bot.getApi().sendMessage(message->chat->id, "Type \"/what\" to see what can I do");
-    });
-
-    start_longpoll(bot);
+    setup_reactions_for_messages(args);
+    setup_commands(args);
+    setup_callback_query(args);
+    start_longpoll(args);
 }
 
-void tgbot::start_longpoll(Bot &bot) {
-    try {
-        printf("Bot username: %s\n", bot.getApi().getMe()->username.c_str());
-        bot.getApi().deleteWebhook();
-        TgLongPoll longPoll(bot);
-        while (true)
-            longPoll.start();
-    } catch (std::exception& e) {
-        printf("error: %s\n", e.what());
+void tgbot::start_longpoll(Args &args) {
+    while (true) {    
+        try {
+            printf("Bot username: %s\n", args.bot.getApi().getMe()->username.c_str());
+            printf("Longpoll started");
+            args.bot.getApi().deleteWebhook();
+            TgLongPoll longPoll(args.bot);
+            while (true)
+                longPoll.start();
+        } catch (std::exception& e) {
+            printf("error: %s\n", e.what());
+        } catch (...) {
+            printf("unexpected error");
+        }
     }
+}
+
+void tgbot::setup_commands(tgbot::Args &args) {
+    // /start
+    args.bot.getEvents().onCommand("start", [&args](Message::Ptr message) {
+        args.bot.getApi().sendMessage(message->chat->id, "Hello! This bot can process your image!");
+        args.bot.getApi().sendMessage(message->chat->id, "Send image as file to me and follow instructions to convert your image");
+    });
+
+    // /what
+    args.bot.getEvents().onCommand("what", [&args](Message::Ptr message) {
+        args.bot.getApi().sendMessage(message->chat->id, "Send image as file to me and follow instructions to convert your image");
+    });
+}
+
+void tgbot::setup_callback_query(Args &args) {
+    args.bot.getEvents().onCallbackQuery([&args](CallbackQuery::Ptr query) {
+        bool convert_image = (StringTools::startsWith(query->data, PIXELIZE_IMAGE_SIGNAL) || StringTools::startsWith(query->data, VINTAGE_IMAGE_SIGNAL) || StringTools::startsWith(query->data, VERTICAL_LINE_SIGNAL) || StringTools::startsWith(query->data, HORIZONTAL_LINE_SIGNAL));
+        if (convert_image) {
+            string fn = args.image_to_edit[query->message->chat->id];
+            if (fn == "") {
+                args.bot.getApi().sendMessage(query->message->chat->id, "an error occurred");
+                return;
+            }
+            delete_message(args, query);
+            try {
+                string tmp_fn = process_photo(query->data, fn);
+                args.bot.getApi().sendMessage(query->message->chat->id, "here is your image:");
+                args.bot.getApi().sendDocument(query->message->chat->id, InputFile::fromFile(tmp_fn, ""));
+                args.image_to_edit.erase(query->message->chat->id);
+                return;
+            } catch (const char *error) {
+                args.bot.getApi().sendMessage(query->message->chat->id, error);
+            }
+        } else if (StringTools::startsWith(query->data, STRIPE_IMAGE_SIGNAL)) {
+            string response = "stripe image";
+            delete_message(args, query);
+            args.message_to_delete[query->message->chat->id] = args.bot.getApi().sendMessage(query->message->chat->id, response, false, 0, args.si_keyboard)->messageId;
+            return;
+        }
+    });
+}
+
+void tgbot::setup_reactions_for_messages(Args &args) {
+    args.bot.getEvents().onAnyMessage([&args](Message::Ptr message) {
+        if (StringTools::startsWith(message->text, "/"))
+            return;
+        else if (message->document != nullptr) {
+            args.message_to_delete[message->chat->id] = args.bot.getApi().sendMessage(message->chat->id, "What I will do?", false, 0, args.main_keyboard)->messageId;
+            download_file(args, message);
+        } else
+            args.bot.getApi().sendMessage(message->chat->id, "Type \"/what\" to see what can I do");
+    });
 }
 
 InlineKeyboardMarkup::Ptr tgbot::get_main_keyboard() {
@@ -137,7 +155,7 @@ string tgbot::get_unique_filename_in_dir(string directory, string extension) {
 }
 
 string tgbot::process_photo(string todo, string fn) {
-    string tmp_fn = get_unique_filename_in_dir("tmp", fn.substr(fn.find_last_of(".") + 1, fn.length()));
+    string tmp_fn = get_unique_filename_in_dir(DIR_FOR_TEMPORARY_FILES, fn.substr(fn.find_last_of(".") + 1, fn.length()));
     try {
         Image img = Image(fn);
         if (todo == VINTAGE_IMAGE_SIGNAL)
@@ -149,17 +167,24 @@ string tgbot::process_photo(string todo, string fn) {
         else if (todo == PIXELIZE_IMAGE_SIGNAL)
             img.pixelize_image(10);
         img.save_image(tmp_fn);
+        return tmp_fn;
     } catch (std::exception &e) {
-        std::cout << e.what() << "\n";
+        throw e.what();
     }
-    return tmp_fn;
 }
 
-void tgbot::download_file(Bot &bot, Message::Ptr message, unordered_map<int, string> &mp) {
-    mp[message->chat->id] = get_unique_filename_in_dir(DIR_FOR_RECIEVED_FILES, message->document->fileName.substr(message->document->fileName.find_last_of(".") + 1, message->document->fileName.length()));
-    File::Ptr file = bot.getApi().getFile(message->document->fileId);
+void tgbot::delete_message(Args &args, CallbackQuery::Ptr query) {
+    if (args.message_to_delete[query->message->chat->id] != 0) {
+        args.bot.getApi().deleteMessage(query->message->chat->id, args.message_to_delete[query->message->chat->id]);
+        args.message_to_delete.erase(query->message->chat->id);
+    }
+}
+
+void tgbot::download_file(Args &args, Message::Ptr message) {
+    args.image_to_edit[message->chat->id] = get_unique_filename_in_dir(DIR_FOR_RECIEVED_FILES, message->document->fileName.substr(message->document->fileName.find_last_of(".") + 1, message->document->fileName.length()));
+    File::Ptr file = args.bot.getApi().getFile(message->document->fileId);
     ofstream myfile;
-    myfile.open(mp[message->chat->id]);
-    myfile << bot.getApi().downloadFile(file->filePath);
+    myfile.open(args.image_to_edit[message->chat->id]);
+    myfile << args.bot.getApi().downloadFile(file->filePath);
     myfile.close();
 }
