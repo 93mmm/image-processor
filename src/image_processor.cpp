@@ -35,31 +35,33 @@ void Image::stripe_image(unsigned int stripes) {
     unsigned char *pixelOffset;
 
     if (stripes & VERTICAL_STRIPES)
-        for (unsigned int i = 0; i < width; i++)
-            if (i % 4 == 0 or i % 4 == 1) {
-                for (unsigned int j = 0; j < height; j++) {
-                    pixelOffset = image + (i + width * j) * channels;
-
+        for (int x = 0; x < width; x++) {
+            for (int i = 0; i < 2; i++)
+                for (int y = 0; y < height; y++) {
+                    pixelOffset = image + (x + width * y) * channels;
                     pixelOffset[0] = 0;
                     pixelOffset[1] = 0;
                     pixelOffset[2] = 0;
                 }
+            x += 2;
             }
     if (stripes & HORIZONTAL_STRIPES)
-        for (unsigned int j = 0; j < height; j++)
-            if (j % 4 == 0 or j % 4 == 1)
-                for (unsigned int i = 0; i < width; i++) {
-                    pixelOffset = image + (i + width * j) * channels;
+        for (int y = 0; y < height; y++) {
+            for (int i = 0; i < 2; i++)
+                for (int x = 0; x < width; x++) {
+                    pixelOffset = image + (x + width * y) * channels;
                     pixelOffset[0] = 0;
                     pixelOffset[1] = 0;
                     pixelOffset[2] = 0;
                 }
+            y += 2;
+        }
 }
 
 void Image::vintage_image() {
     unsigned char *pixelOffset;
-    for (unsigned int x = 0; x < width; x++)
-        for (unsigned int y = 0; y < height; y++) {
+    for (int y = 0; y < height; y++)
+        for (int x = 0; x < width; x++) {
             pixelOffset = image + (x + width * y) * channels;
             pixelOffset[0] = (int)(pixelOffset[0] * 0.608);
             pixelOffset[1] = (int)(pixelOffset[1] * 0.335);
@@ -68,20 +70,27 @@ void Image::vintage_image() {
 }
 
 void Image::pixelize_image(int pixel_size) {
-    for (int y = 0; y < width - pixel_size; y += pixel_size)
-        for (int x = 0; x < height - pixel_size; x += pixel_size) {
-            set_pixel(x, y, pixel_size);
+    int pxsz_x = pixel_size, pxsz_y = pixel_size;
+    for (int y = 0; y < height; y += pixel_size)
+        for (int x = 0; x < width; x += pixel_size) {
+            if (width - x < pixel_size)
+                pxsz_x = width - x;
+            if (height - y < pixel_size)
+                pxsz_y = height - y;
+            set_pixel(x, y, pxsz_x, pxsz_y);
+            pxsz_x = pixel_size;
+            pxsz_y = pixel_size;
         }
 }
 
-void Image::set_pixel(int x_pos, int y_pos, int pixel_size) {
+void Image::set_pixel(int x_pos, int y_pos, int pixel_size_x, int pixel_size_y) {
     int r = 0, g = 0, b = 0;
     unsigned char *pixelOffset;
-    int pixel_square = pixel_size * pixel_size;
-    int range_x = x_pos + pixel_size, range_y = y_pos + pixel_size;
-    for (int x = x_pos; x < range_x; x++)
-        for (int y = y_pos; y < range_y; y++) {
-            pixelOffset = image + (y + width * x) * channels;
+    int pixel_square = pixel_size_x * pixel_size_y;
+    int range_x = x_pos + pixel_size_x, range_y = y_pos + pixel_size_y;
+    for (int y = y_pos; y < range_y; y++)
+        for (int x = x_pos; x < range_x; x++) {
+            pixelOffset = image + (x + width * y) * channels;
             r += (int)pixelOffset[0];
             g += (int)pixelOffset[1];
             b += (int)pixelOffset[2];
@@ -89,9 +98,9 @@ void Image::set_pixel(int x_pos, int y_pos, int pixel_size) {
     r = r / pixel_square;
     g = g / pixel_square;
     b = b / pixel_square;
-    for (int x = x_pos; x < range_x; x++)
-        for (int y = y_pos; y < range_y; y++) {
-            pixelOffset = image + (y + width * x) * channels;
+    for (int y = y_pos; y < range_y; y++)
+        for (int x = x_pos; x < range_x; x++) {
+            pixelOffset = image + (x + width * y) * channels;
             pixelOffset[0] = r;
             pixelOffset[1] = g;
             pixelOffset[2] = b;

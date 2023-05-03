@@ -14,7 +14,7 @@
 #define DIR_FOR_RECIEVED_FILES "docs"
 #define DIR_FOR_TEMPORARY_FILES "tmp"
 
-using std::string, std::ofstream, std::vector, std::unordered_map, std::cout;
+using std::string, std::ofstream, std::vector, std::unordered_map;
 using namespace TgBot;
 
 void tgbot::start_bot(string token) {

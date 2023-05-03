@@ -18,7 +18,7 @@ public:
     void pixelize_image(int pixel_size);
     
 private:
-    void set_pixel(int x_pos, int y_pos, int pixel_size);
+    void set_pixel(int x_pos, int y_pos, int pixel_size_x, int pixel_size_y);
     
     std::string dir,
                 filename,
