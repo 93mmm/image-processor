@@ -17,7 +17,7 @@ namespace tgbot {
     void start_bot(std::string token);
     void start_longpoll(Args &args);
 
-    void setup_commands(Args &args);
+    std::vector<TgBot::BotCommand::Ptr> setup_commands(Args &args);
     void setup_callback_query(Args &args);
     void setup_reactions_for_messages(Args &args);
 

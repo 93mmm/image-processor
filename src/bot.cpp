@@ -25,7 +25,7 @@ void tgbot::start_bot(string token) {
     args.si_keyboard = get_si_keyboard();
     
     setup_reactions_for_messages(args);
-    setup_commands(args);
+    bot.getApi().setMyCommands(setup_commands(args));
     setup_callback_query(args);
     start_longpoll(args);
 }
@@ -47,7 +47,7 @@ void tgbot::start_longpoll(Args &args) {
     }
 }
 
-void tgbot::setup_commands(tgbot::Args &args) {
+vector<BotCommand::Ptr> tgbot::setup_commands(tgbot::Args &args) {
     // /start
     args.bot.getEvents().onCommand("start", [&args](Message::Ptr message) {
         args.bot.getApi().sendMessage(message->chat->id, "Hello! This bot can process your image!");
@@ -58,6 +58,19 @@ void tgbot::setup_commands(tgbot::Args &args) {
     args.bot.getEvents().onCommand("what", [&args](Message::Ptr message) {
         args.bot.getApi().sendMessage(message->chat->id, "Send image as file to me and follow instructions to convert your image");
     });
+
+    vector<BotCommand::Ptr> commands;
+    BotCommand::Ptr cmdArray(new BotCommand);
+    cmdArray->command = "what";
+    cmdArray->description = "get info about bot";
+    commands.push_back(cmdArray);
+
+    cmdArray = BotCommand::Ptr(new BotCommand);
+    cmdArray->command = "start";
+    cmdArray->description = "launch the bot";
+    commands.push_back(cmdArray);
+    
+    return commands;
 }
 
 void tgbot::setup_callback_query(Args &args) {
