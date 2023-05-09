@@ -114,14 +114,13 @@ void Image::glitch_image() {
                 shifted_pixel_offset[2] = pixel_offset[2];
             }
         }
-    
     std::srand(std::time(nullptr));
     int length, start_line, end_line;
     bool sift_to_right;
     for (int i = 0; i < height; i+=length) {
         length = std::rand() % (int)(height * 0.05) + 10;
         sift_to_right = std::rand() % 2;
-        shift = std::rand() % (int)(height * 0.04) + height * 0.01;
+        shift = (std::rand() % (int)(height * 0.01) + height * 0.01) * 4;
         start_line = i;
         end_line = start_line + length;
 

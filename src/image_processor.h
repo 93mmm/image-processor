@@ -19,9 +19,6 @@ public:
     void glitch_image();
     
 private:
-    void shift_random_pieces(int start_line, int end_line, int shift, bool sift_to_right);
-    void set_pixel(int x_pos, int y_pos, int pixel_size_x, int pixel_size_y);
-    
     std::string dir,
                 filename,
                 extension;
@@ -30,6 +27,11 @@ private:
     int width = 0, height, channels;
     
     struct RGB {
-        int r, g, b;
+        int r = 0;
+        int g = 0;
+        int b = 0;
     };
+    
+    void shift_random_pieces(int start_line, int end_line, int shift, bool sift_to_right);
+    void set_pixel(int x_pos, int y_pos, int pixel_size_x, int pixel_size_y);
 };
