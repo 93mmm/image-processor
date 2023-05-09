@@ -1,0 +1,5 @@
+build
+.vscode
+env/docs
+env/tmp
+env/image-processor-tg-bot

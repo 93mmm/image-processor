@@ -16,8 +16,10 @@ public:
     void stripe_image(unsigned int stripes);
     void vintage_image();
     void pixelize_image(int pixel_size);
+    void glitch_image();
     
 private:
+    void shift_random_pieces(int start_line, int end_line, int shift, bool sift_to_right);
     void set_pixel(int x_pos, int y_pos, int pixel_size_x, int pixel_size_y);
     
     std::string dir,

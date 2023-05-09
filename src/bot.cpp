@@ -3,10 +3,14 @@
 
 #include <exception>
 #include <fstream>
+#include <chrono>
+#include <thread>
 
 #define STRIPE_IMAGE_SIGNAL "si"
 #define PIXELIZE_IMAGE_SIGNAL "pi"
+#define BOTH_IMAGE_SIGNAL "both"
 #define VINTAGE_IMAGE_SIGNAL "vi"
+#define GLITCH_IMAGE_SIGNAL "gi"
 
 #define VERTICAL_LINE_SIGNAL "ver_line"
 #define HORIZONTAL_LINE_SIGNAL "hor_line"
@@ -40,8 +44,10 @@ void tgbot::start_longpoll(Args &args) {
             while (true)
                 longPoll.start();
         } catch (std::exception& e) {
+            std::this_thread::sleep_for(std::chrono::seconds(5));
             printf("error: %s\n", e.what());
         } catch (...) {
+            std::this_thread::sleep_for(std::chrono::seconds(5));
             printf("unexpected error");
         }
     }
@@ -75,7 +81,13 @@ vector<BotCommand::Ptr> tgbot::setup_commands(tgbot::Args &args) {
 
 void tgbot::setup_callback_query(Args &args) {
     args.bot.getEvents().onCallbackQuery([&args](CallbackQuery::Ptr query) {
-        bool convert_image = (StringTools::startsWith(query->data, PIXELIZE_IMAGE_SIGNAL) || StringTools::startsWith(query->data, VINTAGE_IMAGE_SIGNAL) || StringTools::startsWith(query->data, VERTICAL_LINE_SIGNAL) || StringTools::startsWith(query->data, HORIZONTAL_LINE_SIGNAL));
+        bool convert_image = (StringTools::startsWith(query->data, GLITCH_IMAGE_SIGNAL) ||
+                             StringTools::startsWith(query->data, BOTH_IMAGE_SIGNAL) ||
+                             StringTools::startsWith(query->data, PIXELIZE_IMAGE_SIGNAL) ||
+                             StringTools::startsWith(query->data, VINTAGE_IMAGE_SIGNAL) ||
+                             StringTools::startsWith(query->data, VERTICAL_LINE_SIGNAL) ||
+                             StringTools::startsWith(query->data, HORIZONTAL_LINE_SIGNAL)
+                             );
         if (convert_image) {
             string fn = args.image_to_edit[query->message->chat->id];
             if (fn == "") {
@@ -136,6 +148,13 @@ InlineKeyboardMarkup::Ptr tgbot::get_main_keyboard() {
     vintage_image_btn->callbackData = VINTAGE_IMAGE_SIGNAL;
     vintage_image.push_back(vintage_image_btn);
     keyboard->inlineKeyboard.push_back(vintage_image);
+
+    vector<InlineKeyboardButton::Ptr> glitch_image;
+    InlineKeyboardButton::Ptr glitch_image_btn(new InlineKeyboardButton);
+    glitch_image_btn->text = "glitch image";
+    glitch_image_btn->callbackData = GLITCH_IMAGE_SIGNAL;
+    glitch_image.push_back(glitch_image_btn);
+    keyboard->inlineKeyboard.push_back(glitch_image);
     return keyboard;
 }
 
@@ -154,6 +173,13 @@ InlineKeyboardMarkup::Ptr tgbot::get_si_keyboard() {
     ver_line->callbackData = VERTICAL_LINE_SIGNAL;
     line1.push_back(ver_line);
     keyboard->inlineKeyboard.push_back(line1);
+
+    vector<InlineKeyboardButton::Ptr> both;
+    InlineKeyboardButton::Ptr both_btn(new InlineKeyboardButton);
+    both_btn->text = "both";
+    both_btn->callbackData = BOTH_IMAGE_SIGNAL;
+    both.push_back(both_btn);
+    keyboard->inlineKeyboard.push_back(both);
 
     return keyboard;
 }
@@ -175,10 +201,14 @@ string tgbot::process_photo(string todo, string fn) {
             img.vintage_image();
         else if (todo == VERTICAL_LINE_SIGNAL)
             img.stripe_image(VERTICAL_STRIPES);
+        else if (todo == BOTH_IMAGE_SIGNAL)
+            img.stripe_image(VERTICAL_STRIPES | HORIZONTAL_STRIPES);
         else if (todo == HORIZONTAL_LINE_SIGNAL)
             img.stripe_image(HORIZONTAL_STRIPES);
         else if (todo == PIXELIZE_IMAGE_SIGNAL)
             img.pixelize_image(10);
+        else if (todo == GLITCH_IMAGE_SIGNAL)
+            img.glitch_image();
         img.save_image(tmp_fn);
         return tmp_fn;
     } catch (std::exception &e) {
